@@ -10,7 +10,7 @@ config.read('dwh.cfg')
 staging_events_table_drop = "DROP TABLE IF EXISTS stage_event"
 staging_songs_table_drop = "DROP TABLE IF EXISTS stage_song"
 songplay_table_drop = "DROP TABLE IF EXISTS songplay"
-user_table_drop = "DROP TABLE IF EXISTS user"
+user_table_drop = "DROP TABLE IF EXISTS app_user"
 song_table_drop = "DROP TABLE IF EXISTS song"
 artist_table_drop = "DROP TABLE IF EXISTS artist"
 time_table_drop = "DROP TABLE IF EXISTS time"
@@ -22,7 +22,7 @@ staging_events_table_create= ("""
     (
         artist          TEXT,
         auth            TEXT,
-        first_name      EXT,
+        first_name      TEXT,
         gender          TEXT,
         item_in_session INTEGER,
         last_name       TEXT,
@@ -69,12 +69,12 @@ songplay_table_create = ("""
         sp_session_id       INTEGER,
         sp_item_in_session  INTEGER,
         sp_location         TEXT,
-        sp_user_agent       TEXT,
+        sp_user_agent       TEXT
     ) diststyle key;
 """)
 
 user_table_create = ("""
-    CREATE TABLE IF NOT EXISTS user
+    CREATE TABLE IF NOT EXISTS app_user
     (
         u_user_id       TEXT PRIMARY KEY SORTKEY,
         u_first_name    TEXT,
@@ -124,7 +124,7 @@ time_table_create = ("""
 staging_events_copy = ("""
     COPY {} FROM {}
     IAM_ROLE {}
-    JSON {} region us-west-2;
+    JSON {} region 'us-west-2';
 """).format(
     'stage_event',
     config['S3']['LOG_DATA'],
@@ -135,7 +135,7 @@ staging_events_copy = ("""
 staging_songs_copy = ("""
     COPY {} FROM {}
     IAM_ROLE {}
-    JSON {} region us-west-2;
+    JSON {} region 'us-west-2';
 """).format(
     'stage_song',
     config['S3']['SONG_DATA'],
