@@ -22,22 +22,22 @@ staging_events_table_create= ("""
     (
         artist          TEXT,
         auth            TEXT,
-        firstName       TEXT,
+        first_name      EXT,
         gender          TEXT,
-        itemInSession   INTEGER,
-        lastName        TEXT,
+        item_in_session INTEGER,
+        last_name       TEXT,
         length          FLOAT4,
-        level           INTEGER,
+        level           TEXT,
         location        TEXT,
         method          TEXT,
         page            TEXT,
         registration    FLOAT8,
-        sessionId       INTEGER,
+        session_id      INTEGER,
         song            TEXT,
         status          INTEGER,
         ts              BIGINT,
-        userAgent       TEXT,
-        userId          TEXT
+        user_agent      TEXT,
+        user_id         TEXT
     );
 """)
 
@@ -67,12 +67,9 @@ songplay_table_create = ("""
         sp_user_id          TEXT NOT NULL DISTKEY,
         sp_level            TEXT,
         sp_session_id       INTEGER,
+        sp_item_in_session  INTEGER,
         sp_location         TEXT,
         sp_user_agent       TEXT,
-        foreign key(sp_song_id) references song(s_song_id),
-        foreign key(sp_artist_id) refrences artist(a_artist_id),
-        foreign key(sp_user_id) references user(u_user_id),
-        foreign key(sp_start_time) references time(t_start_time)
     ) diststyle key;
 """)
 
@@ -117,9 +114,9 @@ time_table_create = ("""
         t_day           SMALLINT,
         t_week          SMALLINT,
         t_month         SMALLINT,
-        t_year          SMALLINT,
+        t_year          SMALLINT DISTKEY,
         t_weekday       SMALLINT
-    ) diststyle auto;
+    ) diststyle key;
 """)
 
 # STAGING TABLES
@@ -127,7 +124,7 @@ time_table_create = ("""
 staging_events_copy = ("""
     COPY {} FROM {}
     IAM_ROLE {}
-    JSON {};
+    JSON {} region us-west-2;
 """).format(
     'stage_event',
     config['S3']['LOG_DATA'],
@@ -138,7 +135,7 @@ staging_events_copy = ("""
 staging_songs_copy = ("""
     COPY {} FROM {}
     IAM_ROLE {}
-    JSON {};
+    JSON {} region us-west-2;
 """).format(
     'stage_song',
     config['S3']['SONG_DATA'],
@@ -149,18 +146,68 @@ staging_songs_copy = ("""
 # FINAL TABLES
 
 songplay_table_insert = ("""
+    SELECT
+        e.ts                as sp_start_time,
+        s.song_id           as sp_song_id,
+        s.artist_id         as sp_artist_id,
+        e.userId            as sp_user_id,
+        e.level             as sp_level,
+        e.session_id        as sp_session_id,
+        e.item_in_session   as sp_item_in_session,
+        e.location          as sp_location,
+        e.user_agent        as sp_user_agent
+    INTO songplay
+    FROM stage_event e, stage_song s
+    WHERE
+        e.song = s.title AND
+        e.artist = s.artist_name AND
+        ABS(e.length - s.duration) < 2
 """)
 
 user_table_insert = ("""
+    SELECT DISTINCT (user_id)
+        user_id         as u_user_id,
+        first_name      as u_first_name,
+        last_name       as u_last_name,
+        gender          as u_gender,
+        level           as u_level
+    INTO user
+    FROM stage_event
 """)
 
 song_table_insert = ("""
+    SELECT DISTINCT (song_id)
+        song_id     as s_song_id,
+        title       as s_title,
+        artist_id   as s_artist_id,
+        year        as s_year,
+        duration    as s_duration
+    INTO song
+    FROM stage_song
 """)
 
 artist_table_insert = ("""
+    SELECT DISTINCT (artist_id)
+        artist_id           as a_artist_id,
+        artist_name         as a_name,
+        artist_location     as a_location,
+        artist_latitude     as a_latitude,
+        artist_longitude    as a_longitude
+    INTO artist
+    FROM stage_song
 """)
 
 time_table_insert = ("""
+    SELECT DISTINCT (ts)
+        ts                          as t_start_time,
+        extract(hour from ts)       as t_hour,
+        extract(day from ts)        as t_day,
+        extract(week from ts)       as t_week,
+        extract(month from ts)      as t_month,
+        extract(year from ts)       as t_year,
+        extract(weekday from ts)    as t_weekday
+    ÍNTO time
+    FROM stage_event
 """)
 
 # QUERY LISTS
