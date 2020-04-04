@@ -123,24 +123,25 @@ time_table_create = ("""
 
 staging_events_copy = ("""
     COPY {} FROM {}
-    IAM_ROLE {}
-    JSON {} region 'us-west-2';
+    IAM_ROLE '{}'
+    JSON {} region '{}';
 """).format(
     'stage_event',
     config['S3']['LOG_DATA'],
     config['IAM_ROLE']['ARN'],
-    config['S3']['LOG_JSONPATH']
+    config['S3']['LOG_JSONPATH'],
+    config['CLUSTER']['REGION']
 )
 
 staging_songs_copy = ("""
     COPY {} FROM {}
-    IAM_ROLE {}
-    JSON {} region 'us-west-2';
+    IAM_ROLE '{}'
+    JSON 'auto' region '{}';
 """).format(
     'stage_song',
     config['S3']['SONG_DATA'],
     config['IAM_ROLE']['ARN'],
-    'AUTO'
+    config['CLUSTER']['REGION']
 )
 
 # FINAL TABLES
@@ -150,7 +151,7 @@ songplay_table_insert = ("""
         e.ts                as sp_start_time,
         s.song_id           as sp_song_id,
         s.artist_id         as sp_artist_id,
-        e.userId            as sp_user_id,
+        e.user_id           as sp_user_id,
         e.level             as sp_level,
         e.session_id        as sp_session_id,
         e.item_in_session   as sp_item_in_session,

@@ -13,6 +13,12 @@ $ pip install boto3
 
 ## Run scripts
 
+Create IAM role, Redshift cluster, and configure TCP connectivity
+
+```bash
+$ python create_cluster.py
+```
+
 Drop and recreate tables
 
 ```bash
@@ -23,6 +29,11 @@ Run ETL pipeline
 
 ```bash
 $ python etl.py
+```
+
+Delete IAM role and Redshift cluster
+```
+$ python create_cluster.py --delete
 ```
 
 ## Further work
