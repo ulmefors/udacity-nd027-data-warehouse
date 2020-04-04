@@ -38,7 +38,7 @@ staging_events_table_create= ("""
         ts              BIGINT,
         userAgent       TEXT,
         userId          TEXT
-    )
+    );
 """)
 
 staging_songs_table_create = ("""
@@ -54,42 +54,72 @@ staging_songs_table_create = ("""
         artist_longitude    REAL,
         artist_location     TEXT,
         num_songs           INTEGER
-    )
+    );
 """)
 
 songplay_table_create = ("""
     CREATE TABLE IF NOT EXISTS songplay
     (
-
-    )
+        sp_songplay_id      BIGINT IDENTITY(1, 1) PRIMARY KEY,
+        sp_start_time       TIMESTAMP NOT NULL SORTKEY,
+        sp_song_id          TEXT,
+        sp_artist_id        TEXT,
+        sp_user_id          TEXT NOT NULL DISTKEY,
+        sp_level            TEXT,
+        sp_session_id       INTEGER,
+        sp_location         TEXT,
+        sp_user_agent       TEXT,
+        foreign key(sp_song_id) references song(s_song_id),
+        foreign key(sp_artist_id) refrences artist(a_artist_id),
+        foreign key(sp_user_id) references user(u_user_id),
+        foreign key(sp_start_time) references time(t_start_time)
+    ) diststyle key;
 """)
 
 user_table_create = ("""
     CREATE TABLE IF NOT EXISTS user
     (
-
-    )
+        u_user_id       TEXT PRIMARY KEY SORTKEY,
+        u_first_name    TEXT,
+        u_last_name     TEXT,
+        u_gender        TEXT,
+        u_level         TEXT
+    ) diststyle all;
 """)
 
 song_table_create = ("""
     CREATE TABLE IF NOT EXISTS song
     (
-
-    )
+        s_song_id       TEXT PRIMARY KEY SORTKEY,
+        s_title         TEXT,
+        s_artist_id     TEXT DISTKEY,
+        s_year          SMALLINT,
+        s_duration      FLOAT4
+    ) diststyle key;
 """)
 
 artist_table_create = ("""
     CREATE TABLE IF NOT EXISTS artist
     (
-
-    )
+        a_artist_id     TEXT PRIMARY KEY SORTKEY,
+        a_name          TEXT,
+        a_location      TEXT,
+        a_latitude      FLOAT4,
+        a_longitude     FLOAT4
+    ) diststyle all;
 """)
 
 time_table_create = ("""
     CREATE TABLE IF NOT EXISTS time
     (
-
-    )
+        t_start_time    TIMESTAMP PRIMARY KEY SORTKEY,
+        t_hour          SMALLINT,
+        t_day           SMALLINT,
+        t_week          SMALLINT,
+        t_month         SMALLINT,
+        t_year          SMALLINT,
+        t_weekday       SMALLINT
+    ) diststyle auto;
 """)
 
 # STAGING TABLES
