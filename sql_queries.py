@@ -157,10 +157,10 @@ songplay_table_insert = ("""
         e.item_in_session,
         e.location,
         e.user_agent
-    FROM stage_event e, stage_song s
-    WHERE
+    FROM stage_event e
+    LEFT JOIN stage_song s ON
         e.song = s.title AND
-        e.artist = s.artist_name AND
+        e.artist = s.artist_name
         ABS(e.length - s.duration) < 2
 """)
 
