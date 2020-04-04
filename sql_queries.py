@@ -147,17 +147,16 @@ staging_songs_copy = ("""
 # FINAL TABLES
 
 songplay_table_insert = ("""
-    SELECT
-        e.ts                as sp_start_time,
-        s.song_id           as sp_song_id,
-        s.artist_id         as sp_artist_id,
-        e.user_id           as sp_user_id,
-        e.level             as sp_level,
-        e.session_id        as sp_session_id,
-        e.item_in_session   as sp_item_in_session,
-        e.location          as sp_location,
-        e.user_agent        as sp_user_agent
-    INTO songplay
+    INSERT INTO songplay (sp_start_time, sp_song_id, sp_artist_id, sp_user_id, sp_level, sp_session_id, sp_item_in_session, sp_location, sp_user_agent) SELECT
+        TIMESTAMP 'epoch' + (e.ts/1000 * INTERVAL '1 second'),
+        s.song_id,
+        s.artist_id,
+        e.user_id,
+        e.level,
+        e.session_id,
+        e.item_in_session,
+        e.location,
+        e.user_agent
     FROM stage_event e, stage_song s
     WHERE
         e.song = s.title AND
@@ -166,49 +165,48 @@ songplay_table_insert = ("""
 """)
 
 user_table_insert = ("""
-    SELECT DISTINCT (user_id)
-        user_id         as u_user_id,
-        first_name      as u_first_name,
-        last_name       as u_last_name,
-        gender          as u_gender,
-        level           as u_level
-    INTO user
+    INSERT INTO app_user SELECT DISTINCT (user_id)
+        user_id,
+        first_name,
+        last_name,
+        gender,
+        level
     FROM stage_event
 """)
 
 song_table_insert = ("""
-    SELECT DISTINCT (song_id)
-        song_id     as s_song_id,
-        title       as s_title,
-        artist_id   as s_artist_id,
-        year        as s_year,
-        duration    as s_duration
-    INTO song
+    INSERT INTO song SELECT DISTINCT (song_id)
+        song_id,
+        title,
+        artist_id,
+        year,
+        duration
     FROM stage_song
 """)
 
 artist_table_insert = ("""
-    SELECT DISTINCT (artist_id)
-        artist_id           as a_artist_id,
-        artist_name         as a_name,
-        artist_location     as a_location,
-        artist_latitude     as a_latitude,
-        artist_longitude    as a_longitude
-    INTO artist
+    INSERT INTO artist SELECT DISTINCT (artist_id)
+        artist_id,
+        artist_name,
+        artist_location,
+        artist_latitude,
+        artist_longitude
     FROM stage_song
 """)
 
+
 time_table_insert = ("""
-    SELECT DISTINCT (ts)
-        ts                          as t_start_time,
-        extract(hour from ts)       as t_hour,
-        extract(day from ts)        as t_day,
-        extract(week from ts)       as t_week,
-        extract(month from ts)      as t_month,
-        extract(year from ts)       as t_year,
-        extract(weekday from ts)    as t_weekday
-    ÍNTO time
-    FROM stage_event
+    INSERT INTO time
+        WITH temp_time AS (SELECT TIMESTAMP 'epoch' + (ts/1000 * INTERVAL '1 second') as ts FROM stage_event)
+        SELECT DISTINCT
+        ts,
+        extract(hour from ts),
+        extract(day from ts),
+        extract(week from ts),
+        extract(month from ts),
+        extract(year from ts),
+        extract(weekday from ts)
+        FROM temp_time
 """)
 
 # QUERY LISTS
