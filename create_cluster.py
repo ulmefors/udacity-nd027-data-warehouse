@@ -25,6 +25,7 @@ S3_READ_ARN = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
 
 
 def create_resources():
+    """ Create required AWS resources """
     options = dict(region_name=REGION, aws_access_key_id=KEY, aws_secret_access_key=SECRET)
     ec2 = boto3.resource('ec2', **options)
     s3 = boto3.resource('s3', **options)
@@ -34,6 +35,7 @@ def create_resources():
 
 
 def create_iam_role(iam):
+    """ Create IAM role for Redshift cluster """
     try:
         dwh_role = iam.create_role(
             Path='/',
@@ -60,6 +62,7 @@ def create_iam_role(iam):
 
 
 def create_redshift_cluster(redshift, role_arn):
+    """ Create Redshift cluster """
     try:
         redshift.create_cluster(
             ClusterType=config['CLUSTER']['DWH_CLUSTER_TYPE'],
@@ -77,6 +80,7 @@ def create_redshift_cluster(redshift, role_arn):
 
 
 def delete_iam_role(iam):
+    """ Delete IAM role """
     role_arn = iam.get_role(RoleName=DWH_IAM_ROLE_NAME)['Role']['Arn']
     iam.detach_role_policy(RoleName=DWH_IAM_ROLE_NAME, PolicyArn=S3_READ_ARN)
     iam.delete_role(RoleName=DWH_IAM_ROLE_NAME)
@@ -84,6 +88,7 @@ def delete_iam_role(iam):
 
 
 def delete_redshift_cluster(redshift):
+    """ Delete Redshift cluster """
     try:
         redshift.delete_cluster(
             ClusterIdentifier=DWH_CLUSTER_ID,
@@ -95,7 +100,7 @@ def delete_redshift_cluster(redshift):
 
 
 def get_public_ip():
-    """ Get public IP of this machine """
+    """ Get public IP of this machine to enable increased security """
     command = 'dig +short myip.opendns.com @resolver1.opendns.com'
     proc = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE)
     out, err = proc.communicate()
@@ -103,6 +108,7 @@ def get_public_ip():
 
 
 def open_tcp(ec2, vpc_id):
+    """ Open TCP connection from outside VPC """
     ip = get_public_ip()
     try:
         vpc = ec2.Vpc(id=vpc_id)
@@ -120,6 +126,7 @@ def open_tcp(ec2, vpc_id):
 
 
 def main(args):
+    """ Main function """
     ec2, s3, iam, redshift = create_resources()
     if args.delete:
         delete_redshift_cluster(redshift)
@@ -128,6 +135,7 @@ def main(args):
         role_arn = create_iam_role(iam)
         create_redshift_cluster(redshift, role_arn)
 
+        # Poll the Redshift cluster after creation until available
         timestep = 15
         for _ in range(int(600/timestep)):
             cluster = redshift.describe_clusters(ClusterIdentifier=DWH_CLUSTER_ID)['Clusters'][0]
@@ -136,6 +144,7 @@ def main(args):
             logging.info('Cluster status is "{}". Retrying in {} seconds.'.format(cluster['ClusterStatus'], timestep))
             time.sleep(timestep)
 
+        # Open TCP connection upon successful cluster creation
         if cluster:
             logging.info('Cluster created at {}'.format(cluster['Endpoint']))
             open_tcp(ec2, cluster['VpcId'])
@@ -144,6 +153,7 @@ def main(args):
 
 
 if __name__ == '__main__':
+    """ Set logging level and cli arguments """
     logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser()
     parser.add_argument('--delete', dest='delete', default=False, action='store_true')

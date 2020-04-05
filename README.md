@@ -3,21 +3,48 @@
 Project submission for Udacity Data Engineering Nanodegree - Data Warehouse
 
 ## Summary
-This project...
+This project combines song listen log files with song metadata to facilitate analytics. A Redshift cluster is created using the Python SDK and a data pipeline built in Python and SQL prepares a data schema designed for analytics. JSON data is copied from an S3 bucket to Redshift staging tables before being inserted into a star schema with fact and dimension tables.
 
 ## Install
 
 ```bash
-$ pip install boto3
+$ pip install -r requirements.txt
 ```
 
+## Files
+
+**`create_cluster.py`**
+
+* Create IAM role, Redshift cluster, and allow TCP connection from outside VPC
+* Pass `--delete` flag to delete resources
+
+**`create_tables.py`** Drop and recreate tables
+
+**`dwh.cfg`** Configure Redshift cluster and data import
+
+**`etl.py`** Copy data to staging tables and insert into star schema fact and dimension tables
+
+**`sql_queries.py`**
+
+* Creating and dropping staging and star schema tables
+* Copy JSON data from S3 to Redshift staging tables
+* Insert data from staging tables to star schema fact and dimension tables
+
 ## Run scripts
+
+Set environment variables `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
+
+Choose `DB/DB_PASSWORD` in `dhw.cfg`.
 
 Create IAM role, Redshift cluster, and configure TCP connectivity
 
 ```bash
 $ python create_cluster.py
 ```
+
+Complete `dwh.cfg` with outputs from `create_cluster.py`
+* `CLUSTER/HOST`
+* `IAM_ROLE/ARN`
 
 Drop and recreate tables
 
@@ -32,7 +59,7 @@ $ python etl.py
 ```
 
 Delete IAM role and Redshift cluster
-```
+```bash
 $ python create_cluster.py --delete
 ```
 
