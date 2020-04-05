@@ -3,7 +3,7 @@
 Project submission for Udacity Data Engineering Nanodegree - Data Warehouse
 
 ## Summary
-This project combines song listen log files with song metadata to facilitate analytics. A Redshift cluster is created using the Python SDK and a data pipeline built in Python and SQL prepares a data schema designed for analytics. JSON data is copied from an S3 bucket to Redshift staging tables before being inserted into a star schema with fact and dimension tables.
+This project combines song listen log files with song metadata to facilitate analytics. A Redshift cluster is created using the Python SDK and a data pipeline built in Python and SQL prepares a data schema designed for analytics. JSON data is copied from an S3 bucket to Redshift staging tables before being inserted into a star schema with fact and dimension tables. Analytics queries on the ` songplays` fact table are straightforward, and additional fields can be easily accessed in the four dimension tables `users`, `songs`, `artists`, and `time`. A star schema is suitable for this application since denormalization is easy, queries can be kept simple, and aggregations are fast.
 
 ## Install
 

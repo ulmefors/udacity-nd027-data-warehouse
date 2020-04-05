@@ -9,10 +9,10 @@ config.read('dwh.cfg')
 
 staging_events_table_drop = "DROP TABLE IF EXISTS stage_event"
 staging_songs_table_drop = "DROP TABLE IF EXISTS stage_song"
-songplay_table_drop = "DROP TABLE IF EXISTS songplay"
-user_table_drop = "DROP TABLE IF EXISTS app_user"
-song_table_drop = "DROP TABLE IF EXISTS song"
-artist_table_drop = "DROP TABLE IF EXISTS artist"
+songplay_table_drop = "DROP TABLE IF EXISTS songplays"
+user_table_drop = "DROP TABLE IF EXISTS users"
+song_table_drop = "DROP TABLE IF EXISTS songs"
+artist_table_drop = "DROP TABLE IF EXISTS artists"
 time_table_drop = "DROP TABLE IF EXISTS time"
 
 # CREATE TABLES
@@ -58,64 +58,63 @@ staging_songs_table_create = ("""
 """)
 
 songplay_table_create = ("""
-    CREATE TABLE IF NOT EXISTS songplay
+    CREATE TABLE IF NOT EXISTS songplays
     (
-        sp_songplay_id      BIGINT IDENTITY(1, 1) PRIMARY KEY,
-        sp_start_time       TIMESTAMP NOT NULL SORTKEY,
-        sp_song_id          TEXT,
-        sp_artist_id        TEXT,
-        sp_user_id          TEXT NOT NULL DISTKEY,
-        sp_level            TEXT,
-        sp_session_id       INTEGER,
-        sp_item_in_session  INTEGER,
-        sp_location         TEXT,
-        sp_user_agent       TEXT
+        songplay_id    BIGINT IDENTITY(1, 1) PRIMARY KEY,
+        start_time     TIMESTAMP NOT NULL SORTKEY,
+        user_id        TEXT NOT NULL DISTKEY,
+        level          TEXT,
+        song_id        TEXT,
+        artist_id      TEXT,
+        session_id     INTEGER,
+        location       TEXT,
+        user_agent     TEXT
     ) diststyle key;
 """)
 
 user_table_create = ("""
-    CREATE TABLE IF NOT EXISTS app_user
+    CREATE TABLE IF NOT EXISTS users
     (
-        u_user_id       TEXT PRIMARY KEY SORTKEY,
-        u_first_name    TEXT,
-        u_last_name     TEXT,
-        u_gender        TEXT,
-        u_level         TEXT
+        user_id     TEXT PRIMARY KEY SORTKEY,
+        first_name  TEXT,
+        last_name   TEXT,
+        gender      TEXT,
+        level       TEXT
     ) diststyle all;
 """)
 
 song_table_create = ("""
-    CREATE TABLE IF NOT EXISTS song
+    CREATE TABLE IF NOT EXISTS songs
     (
-        s_song_id       TEXT PRIMARY KEY SORTKEY,
-        s_title         TEXT,
-        s_artist_id     TEXT DISTKEY,
-        s_year          SMALLINT,
-        s_duration      FLOAT4
+        song_id     TEXT PRIMARY KEY SORTKEY,
+        title       TEXT,
+        artist_id   TEXT DISTKEY,
+        year        SMALLINT,
+        duration    FLOAT4
     ) diststyle key;
 """)
 
 artist_table_create = ("""
-    CREATE TABLE IF NOT EXISTS artist
+    CREATE TABLE IF NOT EXISTS artists
     (
-        a_artist_id     TEXT PRIMARY KEY SORTKEY,
-        a_name          TEXT,
-        a_location      TEXT,
-        a_latitude      FLOAT4,
-        a_longitude     FLOAT4
+        artist_id   TEXT PRIMARY KEY SORTKEY,
+        name        TEXT,
+        location    TEXT,
+        latitude    FLOAT4,
+        longitude   FLOAT4
     ) diststyle all;
 """)
 
 time_table_create = ("""
     CREATE TABLE IF NOT EXISTS time
     (
-        t_start_time    TIMESTAMP PRIMARY KEY SORTKEY,
-        t_hour          SMALLINT,
-        t_day           SMALLINT,
-        t_week          SMALLINT,
-        t_month         SMALLINT,
-        t_year          SMALLINT DISTKEY,
-        t_weekday       SMALLINT
+        start_time  TIMESTAMP PRIMARY KEY SORTKEY,
+        hour        SMALLINT,
+        day         SMALLINT,
+        week        SMALLINT,
+        month       SMALLINT,
+        year        SMALLINT DISTKEY,
+        weekday     SMALLINT
     ) diststyle key;
 """)
 
@@ -147,25 +146,26 @@ staging_songs_copy = ("""
 # FINAL TABLES
 
 songplay_table_insert = ("""
-    INSERT INTO songplay (sp_start_time, sp_song_id, sp_artist_id, sp_user_id, sp_level, sp_session_id, sp_item_in_session, sp_location, sp_user_agent) SELECT
+    INSERT INTO songplays (start_time, user_id, level, song_id, artist_id, session_id, location, user_agent) SELECT
         TIMESTAMP 'epoch' + (e.ts/1000 * INTERVAL '1 second'),
-        s.song_id,
-        s.artist_id,
         e.user_id,
         e.level,
+        s.song_id,
+        s.artist_id,
         e.session_id,
-        e.item_in_session,
         e.location,
         e.user_agent
     FROM stage_event e
     LEFT JOIN stage_song s ON
         e.song = s.title AND
-        e.artist = s.artist_name
+        e.artist = s.artist_name AND
         ABS(e.length - s.duration) < 2
+    WHERE
+        e.page = 'NextSong'
 """)
 
 user_table_insert = ("""
-    INSERT INTO app_user SELECT DISTINCT (user_id)
+    INSERT INTO users SELECT DISTINCT (user_id)
         user_id,
         first_name,
         last_name,
@@ -175,7 +175,7 @@ user_table_insert = ("""
 """)
 
 song_table_insert = ("""
-    INSERT INTO song SELECT DISTINCT (song_id)
+    INSERT INTO songs SELECT DISTINCT (song_id)
         song_id,
         title,
         artist_id,
@@ -185,7 +185,7 @@ song_table_insert = ("""
 """)
 
 artist_table_insert = ("""
-    INSERT INTO artist SELECT DISTINCT (artist_id)
+    INSERT INTO artists SELECT DISTINCT (artist_id)
         artist_id,
         artist_name,
         artist_location,
